@@ -312,7 +312,7 @@ const processTemperatureData = () => {
             }
         });
         
-        // Render the visualization upon clicking on button
+        // ender the temperature visualization when data is loaded
         ReactDOM.render(
             React.createElement(TemperatureViz, { temperatureData: monthlyTempData }),
             document.getElementById("root")

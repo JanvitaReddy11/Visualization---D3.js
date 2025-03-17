@@ -2,7 +2,7 @@ const { useEffect, useState } = React;
 
 const TemperatureViz = ({ temperatureData }) => {
 
-    const [displayMaxTemp, setDisplayMaxTemp] = useState(true); //Deafult state is set to dsiplay maximum gradient
+    const [displayMaxTemp, setDisplayMaxTemp] = useState(true); // Default state is set to display maximum temperature gradient
     
     // Chart dimensions and configuration
     const dimensions = {
@@ -12,20 +12,20 @@ const TemperatureViz = ({ temperatureData }) => {
         legendWidth: 25,
         legendHeight: 550
     };
-    
-    // Prepare data arrays
-    const uniqueYearsList = [...new Set(temperatureData.map(record => record.year))];
-    const monthIndices = Array.from({ length: 12 }, (_, idx) => idx + 1);
+
+    // Prepare data 
+    const uniqueYearsList = [...new Set(temperatureData.map(record => record.year))]; // Unique years for X-axis
+    const monthIndices = Array.from({ length: 12 }, (_, idx) => idx + 1); // Month indices from 1 to 12
     const monthNames = [
         "January", "February", "March", "April", "May", "June", 
         "July", "August", "September", "October", "November", "December"
     ];
     
     useEffect(() => {
-       
+        // Clear existing chart before rendering
         d3.select("#viz-container").selectAll("*").remove();
         
-        // Create SVG with proper dimensions
+        // Create SVG element
         const vizCanvas = d3.select("#viz-container")
             .append("svg")
                 .attr("width", dimensions.chartWidth + dimensions.margin.left + dimensions.margin.right + 150)
@@ -33,7 +33,7 @@ const TemperatureViz = ({ temperatureData }) => {
             .append("g")
                 .attr("transform", `translate(${dimensions.margin.left},${dimensions.margin.top})`);
         
-        // Create scales
+        // Create scales for X and Y axis
         const yearScale = d3.scaleBand()
             .domain(uniqueYearsList)
             .range([0, dimensions.chartWidth])
@@ -44,13 +44,14 @@ const TemperatureViz = ({ temperatureData }) => {
             .range([0, dimensions.chartHeight])
             .padding(0.12);
             
+        // Define the color scale for the temperature
         const colorScale = d3.scaleSequential(d3.interpolateYlOrRd)
             .domain([
                 d3.min(temperatureData, record => record.minTemp), 
                 d3.max(temperatureData, record => record.maxTemp)
             ]);
         
-        // Display visualization title
+        // Display the title of the chart
         vizCanvas.append("text")
             .attr("x", dimensions.chartWidth / 2)
             .attr("y", -dimensions.margin.top / 2)
@@ -59,7 +60,7 @@ const TemperatureViz = ({ temperatureData }) => {
             .attr("font-weight", "bold")
             .text(`${displayMaxTemp ? "Maximum" : "Minimum"} Temperature Visualization`);
         
-        // CDisplay heatmap cells
+        // Create heatmap cells based on the temperature data
         const heatmapCells = vizCanvas.selectAll(".temp-cell")
             .data(temperatureData)
             .enter()
@@ -73,7 +74,7 @@ const TemperatureViz = ({ temperatureData }) => {
                 .attr("rx", 2)
                 .attr("ry", 2);
                 
-        // Add interactivity to cells
+        // Add interactivity to heatmap cells for tooltip display
         heatmapCells
             .on("mouseover", (event, record) => {
                 d3.select("#tooltip-element")
@@ -91,22 +92,22 @@ const TemperatureViz = ({ temperatureData }) => {
             })
             .on("mouseleave", () => {
                 d3.select("#tooltip-element").style("visibility", "hidden");
-            });  // Hover the mouse pointer to display (Date, Min Temp and Max Temp)
+            });  // Tooltip shown on hover with month, year, and temperature data
         
-        // Display X-axis (Years)
+        // Display X-axis (Years) at the top of the chart
         vizCanvas.append("g")
             .attr("transform", `translate(0, 0)`)
             .call(d3.axisTop(yearScale))
             .selectAll("text")
                 .style("font-size", "11px");
                 
-        // Display Y-axis (Months)
+        // Display Y-axis (Months) on the left of the chart with month names
         vizCanvas.append("g")
             .call(d3.axisLeft(monthScale).tickFormat(idx => monthNames[idx - 1]))
             .selectAll("text")
                 .style("font-size", "11px");
                 
-        // Display X axis labels
+        // Add label to X-axis (Years)
         vizCanvas.append("text")
             .attr("x", dimensions.chartWidth / 2)
             .attr("y", dimensions.chartHeight + 40)
@@ -114,7 +115,8 @@ const TemperatureViz = ({ temperatureData }) => {
             .attr("font-size", "14px")
             .attr("font-weight", "bold")
             .text("Years");
-        // Display Y axis labels
+        
+        // Add label to Y-axis (Months)
         vizCanvas.append("text")
             .attr("transform", "rotate(-90)")
             .attr("x", -dimensions.chartHeight / 2)
@@ -124,11 +126,11 @@ const TemperatureViz = ({ temperatureData }) => {
             .attr("font-weight", "bold")
             .text("Months");
         
-        // Display temperature legend
+        // Create and display temperature legend
         const legendGroup = vizCanvas.append("g")
             .attr("transform", `translate(${dimensions.chartWidth + 60}, 0)`);
             
-        // Display gradient for legend
+        // Define gradient for the legend
         const tempGradient = legendGroup.append("defs")
             .append("linearGradient")
                 .attr("id", "temp-gradient")
@@ -137,6 +139,7 @@ const TemperatureViz = ({ temperatureData }) => {
                 .attr("x2", "0%")
                 .attr("y2", "0%");
                 
+        // Gradient stops for color legend
         [
             { position: "0%", value: 0 },
             { position: "50%", value: 0.5 },
@@ -147,7 +150,7 @@ const TemperatureViz = ({ temperatureData }) => {
                 .attr("stop-color", d3.interpolateYlOrRd(stop.value));
         });
         
-    
+
         legendGroup.append("rect")
             .attr("width", dimensions.legendWidth)
             .attr("height", dimensions.legendHeight)
@@ -155,6 +158,7 @@ const TemperatureViz = ({ temperatureData }) => {
             .attr("rx", 3)
             .attr("ry", 3);
             
+        // Create scale for the temperature values in the legend
         const legendTempScale = d3.scaleLinear()
             .domain([
                 d3.min(temperatureData, record => record.minTemp),
@@ -162,13 +166,14 @@ const TemperatureViz = ({ temperatureData }) => {
             ])
             .range([dimensions.legendHeight, 0]);
             
+        // Display temperature values on the legend scale
         legendGroup.append("g")
             .attr("transform", `translate(${dimensions.legendWidth}, 0)`)
             .call(d3.axisRight(legendTempScale)
                 .ticks(6)
                 .tickFormat(d => `${d}°C`));
                 
-        // Display legend title
+        // Add title to the temperature legend
         legendGroup.append("text")
             .attr("transform", "rotate(90)")
             .attr("x", dimensions.legendHeight / 2)
@@ -214,10 +219,10 @@ const TemperatureViz = ({ temperatureData }) => {
     );
 };
 
-// Load temperature CSV file
+// Load temperature data from CSV and process it
 const processTemperatureData = () => {
     d3.csv("temperature_daily.csv").then((rawRecords) => {
-        // Parse and transform raw data
+        // Creating date objects and extracting temperature values
         rawRecords.forEach(record => {
             record.dateObj = new Date(record.date);
             record.year = record.dateObj.getFullYear();
@@ -226,14 +231,14 @@ const processTemperatureData = () => {
             record.maxTemp = +record.max_temperature;
         });
         
-        // Group by month and year
+        // Group the data by year and month
         const monthlyTempData = [];
         const groupedByYearMonth = d3.group(rawRecords, 
             record => record.year, 
             record => record.month
         );
         
-        // Process only data from 1997 onwards
+        // Process data from 1997 onwards only
         groupedByYearMonth.forEach((yearData, year) => {
             if (year >= 1997) {
                 yearData.forEach((monthData, month) => {
@@ -247,7 +252,7 @@ const processTemperatureData = () => {
             }
         });
         
-        // Render the visualization component when click on button to change from maximum to minimum heatmap
+        // Render the temperature visualization when data is loaded
         ReactDOM.render(
             React.createElement(TemperatureViz, { temperatureData: monthlyTempData }),
             document.getElementById("root")
@@ -257,7 +262,7 @@ const processTemperatureData = () => {
         document.getElementById("root").innerHTML = `
             <div style="color: red; padding: 20px;">
                 <h3>Data Loading Error</h3>
-                <p>Failed to load temperature data. .</p>
+                <p>Failed to load temperature data.</p>
             </div>
         `;
     });
