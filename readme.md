@@ -8,7 +8,7 @@ Setup Instructions
 Follow these steps to set up and run the project:
 1. Clone the Repository
 
-git clone 
+git clone https://github.com/JanvitaReddy11/Visualization---D3.js.git
 
 2. Navigate to the Project Directory
 
