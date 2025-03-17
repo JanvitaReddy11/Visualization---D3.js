@@ -14,10 +14,10 @@ git clone https://github.com/JanvitaReddy11/Visualization---D3.js.git
 
 3. Install Dependencies
 
-Node.js
+    Node.js
 
 4. Start the Python HTTP Server
 
-python -m http.server 8000
+    python -m http.server 8000
 
 This will make the project available at http://localhost:8000
