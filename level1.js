@@ -1,163 +1,266 @@
 const { useEffect, useState } = React;
 
-const MatrixView = ({ data }) => {
-    const [showMax, setShowMax] = useState(true);
-    const width = 1000, height = 600, margin = { top: 50, right: 50, bottom: 50, left: 100 };
-    const years = [...new Set(data.map(d => d.year))];
-    const months = d3.range(1, 13); // Months 0-11
+const TemperatureViz = ({ temperatureData }) => {
 
-    // Updated color scale: Yellow (Cool) → Red (Hot)
-    const colorScale = d3.scaleSequential(d3.interpolateYlOrRd)
-    .domain([d3.min(data, d => d.minTemp), d3.max(data, d => d.maxTemp)]);
-
+    const [displayMaxTemp, setDisplayMaxTemp] = useState(true); //Deafult state is set to dsiplay maximum gradient
+    
+    // Chart dimensions and configuration
+    const dimensions = {
+        chartWidth: 900,
+        chartHeight: 550,
+        margin: { top: 60, right: 60, bottom: 60, left: 120 },
+        legendWidth: 25,
+        legendHeight: 550
+    };
+    
+    // Prepare data arrays
+    const uniqueYearsList = [...new Set(temperatureData.map(record => record.year))];
+    const monthIndices = Array.from({ length: 12 }, (_, idx) => idx + 1);
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
+    
     useEffect(() => {
-        // Clear previous SVG content
-        d3.select("#matrix").selectAll("*").remove();
-    
-        // Set up the SVG container
-        const svg = d3.select("#matrix").append("svg")
-            .attr("width", width + margin.left + margin.right + 150)
-            .attr("height", height + margin.top + margin.bottom)
+       
+        d3.select("#viz-container").selectAll("*").remove();
+        
+        // Create SVG with proper dimensions
+        const vizCanvas = d3.select("#viz-container")
+            .append("svg")
+                .attr("width", dimensions.chartWidth + dimensions.margin.left + dimensions.margin.right + 150)
+                .attr("height", dimensions.chartHeight + dimensions.margin.top + dimensions.margin.bottom)
             .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
-    
-        // Define scales
-        const xScale = d3.scaleBand().domain(years).range([0, width]).padding(0.05);
-        const yScale = d3.scaleBand().domain(months).range([0, height]).padding(0.05);
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    
-        // Define color scale
+                .attr("transform", `translate(${dimensions.margin.left},${dimensions.margin.top})`);
+        
+        // Create scales
+        const yearScale = d3.scaleBand()
+            .domain(uniqueYearsList)
+            .range([0, dimensions.chartWidth])
+            .padding(0.12);
+            
+        const monthScale = d3.scaleBand()
+            .domain(monthIndices)
+            .range([0, dimensions.chartHeight])
+            .padding(0.12);
+            
         const colorScale = d3.scaleSequential(d3.interpolateYlOrRd)
-            .domain([d3.min(data, d => d.minTemp), d3.max(data, d => d.maxTemp)]);
-
-
-        svg.append("text")
-            .attr("x", width / 2) // Center horizontally
-            .attr("y", -margin.top / 2) // Adjust vertical position above the matrix
-            .attr("text-anchor", "middle") // Align text to the center
-            .attr("font-size", "25px")
+            .domain([
+                d3.min(temperatureData, record => record.minTemp), 
+                d3.max(temperatureData, record => record.maxTemp)
+            ]);
+        
+        // Display visualization title
+        vizCanvas.append("text")
+            .attr("x", dimensions.chartWidth / 2)
+            .attr("y", -dimensions.margin.top / 2)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "22px")
             .attr("font-weight", "bold")
-            .text(` ${showMax ? "Max" : "Min"} Temperature`);
-    
-        // Draw heatmap cells
-        svg.selectAll(".cell")
-            .data(data)
-            .enter().append("rect")
-            .attr("x", d => xScale(d.year))
-            .attr("y", d => yScale(d.month))
-            .attr("width", xScale.bandwidth())
-            .attr("height", yScale.bandwidth())
-            .attr("fill", d => colorScale(showMax ? d.maxTemp : d.minTemp))
-            .on("mouseover", (event, d) => {
-                d3.select("#tooltip")
+            .text(`${displayMaxTemp ? "Maximum" : "Minimum"} Temperature Visualization`);
+        
+        // CDisplay heatmap cells
+        const heatmapCells = vizCanvas.selectAll(".temp-cell")
+            .data(temperatureData)
+            .enter()
+            .append("rect")
+                .attr("class", "temp-cell")
+                .attr("x", record => yearScale(record.year))
+                .attr("y", record => monthScale(record.month))
+                .attr("width", yearScale.bandwidth())
+                .attr("height", monthScale.bandwidth())
+                .attr("fill", record => colorScale(displayMaxTemp ? record.maxTemp : record.minTemp))
+                .attr("rx", 2)
+                .attr("ry", 2);
+                
+        // Add interactivity to cells
+        heatmapCells
+            .on("mouseover", (event, record) => {
+                d3.select("#tooltip-element")
                     .style("visibility", "visible")
-                    .html(`Date: ${d.year}-${monthNames[d.month - 1]}<br/>Max: ${d.maxTemp}°C, Min: ${d.minTemp}°C`);
+                    .html(`
+                        <strong>${monthNames[record.month - 1]} ${record.year}</strong><br/>
+                        Maximum: ${record.maxTemp}°C<br/>
+                        Minimum: ${record.minTemp}°C
+                    `);
             })
             .on("mousemove", (event) => {
-                d3.select("#tooltip")
+                d3.select("#tooltip-element")
                     .style("top", `${event.pageY + 10}px`)
                     .style("left", `${event.pageX + 10}px`);
             })
             .on("mouseleave", () => {
-                d3.select("#tooltip").style("visibility", "hidden");
-            });
-    
-        // X Axis (Years)
-        svg.append("g")
+                d3.select("#tooltip-element").style("visibility", "hidden");
+            });  // Hover the mouse pointer to display (Date, Min Temp and Max Temp)
+        
+        // Display X-axis (Years)
+        vizCanvas.append("g")
             .attr("transform", `translate(0, 0)`)
-            .call(d3.axisTop(xScale));
-    
-        // Y Axis (Months)
-        svg.append("g")
-            .call(d3.axisLeft(yScale).tickFormat(d => monthNames[d - 1]));
-    
-        // Add Legend
-        const legendWidth = 20, legendHeight = 400;
-        const legend = svg.append("g")
-            .attr("transform", `translate(${width + 60}, 50)`);
-    
-        // Create linear gradient for legend
-        const legendGradient = legend.append("defs").append("linearGradient")
-            .attr("id", "legend-gradient")
-            .attr("x1", "0%").attr("y1", "100%") // Gradient starts from bottom
-            .attr("x2", "0%").attr("y2", "0%");  // Ends at the top
-    
-        // Define color stops dynamically
-        const colorStops = [
-            { offset: "0%", color: d3.interpolateYlOrRd(0) },   // Yellow (cooler)
-            { offset: "50%", color: d3.interpolateYlOrRd(0.5) }, // Orange (moderate)
-            { offset: "100%", color: d3.interpolateYlOrRd(1) }   // Red (hotter)
-        ];
-    
-        // Append color stops
-        colorStops.forEach(stop => {
-            legendGradient.append("stop")
-                .attr("offset", stop.offset)
-                .attr("stop-color", stop.color);
+            .call(d3.axisTop(yearScale))
+            .selectAll("text")
+                .style("font-size", "11px");
+                
+        // Display Y-axis (Months)
+        vizCanvas.append("g")
+            .call(d3.axisLeft(monthScale).tickFormat(idx => monthNames[idx - 1]))
+            .selectAll("text")
+                .style("font-size", "11px");
+                
+        // Display X axis labels
+        vizCanvas.append("text")
+            .attr("x", dimensions.chartWidth / 2)
+            .attr("y", dimensions.chartHeight + 40)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .attr("font-weight", "bold")
+            .text("Years");
+        // Display Y axis labels
+        vizCanvas.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -dimensions.chartHeight / 2)
+            .attr("y", -dimensions.margin.left + 50)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .attr("font-weight", "bold")
+            .text("Months");
+        
+        // Display temperature legend
+        const legendGroup = vizCanvas.append("g")
+            .attr("transform", `translate(${dimensions.chartWidth + 60}, 0)`);
+            
+        // Display gradient for legend
+        const tempGradient = legendGroup.append("defs")
+            .append("linearGradient")
+                .attr("id", "temp-gradient")
+                .attr("x1", "0%")
+                .attr("y1", "100%")
+                .attr("x2", "0%")
+                .attr("y2", "0%");
+                
+        [
+            { position: "0%", value: 0 },
+            { position: "50%", value: 0.5 },
+            { position: "100%", value: 1 }
+        ].forEach(stop => {
+            tempGradient.append("stop")
+                .attr("offset", stop.position)
+                .attr("stop-color", d3.interpolateYlOrRd(stop.value));
         });
+        
     
-        // Create the legend rectangle
-        legend.append("rect")
-            .attr("width", legendWidth)
-            .attr("height", legendHeight)
-            .style("fill", "url(#legend-gradient)");
+        legendGroup.append("rect")
+            .attr("width", dimensions.legendWidth)
+            .attr("height", dimensions.legendHeight)
+            .style("fill", "url(#temp-gradient)")
+            .attr("rx", 3)
+            .attr("ry", 3);
+            
+        const legendTempScale = d3.scaleLinear()
+            .domain([
+                d3.min(temperatureData, record => record.minTemp),
+                d3.max(temperatureData, record => record.maxTemp)
+            ])
+            .range([dimensions.legendHeight, 0]);
+            
+        legendGroup.append("g")
+            .attr("transform", `translate(${dimensions.legendWidth}, 0)`)
+            .call(d3.axisRight(legendTempScale)
+                .ticks(6)
+                .tickFormat(d => `${d}°C`));
+                
+        // Display legend title
+        legendGroup.append("text")
+            .attr("transform", "rotate(90)")
+            .attr("x", dimensions.legendHeight / 2)
+            .attr("y", -dimensions.legendWidth - 40)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .attr("font-weight", "bold")
+            .text("Temperature (°C)");
+            
+    }, [temperatureData, displayMaxTemp]);
     
-        // Legend scale & axis
-        const legendScale = d3.scaleLinear()
-            .domain([d3.min(data, d => d.minTemp), d3.max(data, d => d.maxTemp)])
-            .range([legendHeight, 0]);
-    
-        legend.append("g")
-            .attr("transform", `translate(${legendWidth}, 0)`)
-            .call(d3.axisRight(legendScale).ticks(5))
-            .selectAll("text")  
-            .style("text-anchor", "middle");
-    
-    }, [data, showMax]); // Dependency array
-     // Ensure vertical text is properly aligned
-
-
-     const title = showMax ? "Max Temperature" : "Min Temperature";
-
-     return React.createElement("div", null,
-         // Display the title dynamically
-         React.createElement("button", { onClick: () => setShowMax(!showMax) }, 
-             ` Display ${showMax ? "Min" : "Max"} Temperature`
-         ),
-         React.createElement("div", { id: "matrix" }),
-         React.createElement("div", { id: "tooltip", style: { position: "absolute", visibility: "hidden", background: "#fff", padding: "5px", border: "1px solid black", borderRadius: "5px" } })
-     );
+    return (
+        React.createElement("div", { className: "temperature-visualization" },
+            React.createElement("button", { 
+                onClick: () => setDisplayMaxTemp(!displayMaxTemp),
+                style: {
+                    padding: "8px 15px",
+                    margin: "10px 0",
+                    backgroundColor: displayMaxTemp ? "#ff7043" : "#5c6bc0",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold"
+                }
+            }, `Show ${displayMaxTemp ? "Minimum" : "Maximum"} Temperature`),
+            React.createElement("div", { id: "viz-container" }),
+            React.createElement("div", { 
+                id: "tooltip-element", 
+                style: { 
+                    position: "absolute", 
+                    visibility: "hidden", 
+                    background: "rgba(255, 255, 255, 0.9)",
+                    padding: "10px", 
+                    border: "1px solid #ddd", 
+                    borderRadius: "5px",
+                    boxShadow: "0 2px 5px rgba(0,0,0,0.15)",
+                    fontSize: "12px",
+                    pointerEvents: "none"
+                } 
+            })
+        )
+    );
 };
 
-// Function to load and process the CSV file
-const loadData = () => {
-    d3.csv("temperature_daily.csv").then((data) => {
-        data.forEach(d => {
-            d.date = new Date(d.date);
-            d.year = d.date.getFullYear();
-            d.month = d.date.getMonth()+1 ;
-            d.minTemp = +d.min_temperature;
-            d.maxTemp = +d.max_temperature;
+// Load temperature CSV file
+const processTemperatureData = () => {
+    d3.csv("temperature_daily.csv").then((rawRecords) => {
+        // Parse and transform raw data
+        rawRecords.forEach(record => {
+            record.dateObj = new Date(record.date);
+            record.year = record.dateObj.getFullYear();
+            record.month = record.dateObj.getMonth() + 1;
+            record.minTemp = +record.min_temperature;
+            record.maxTemp = +record.max_temperature;
         });
-
-        const processedData = [];
-        const groupedData = d3.group(data, d => d.year, d => d.month);
-
-        groupedData.forEach((yearGroup, year) => {
-            if (year >= 1997){
-            yearGroup.forEach((monthGroup, month) => {
-                const minTemp = d3.min(monthGroup, d => d.minTemp);
-                const maxTemp = d3.max(monthGroup, d => d.maxTemp);
-                processedData.push({ year: +year, month: +month, minTemp, maxTemp });
-            });
-        }
+        
+        // Group by month and year
+        const monthlyTempData = [];
+        const groupedByYearMonth = d3.group(rawRecords, 
+            record => record.year, 
+            record => record.month
+        );
+        
+        // Process only data from 1997 onwards
+        groupedByYearMonth.forEach((yearData, year) => {
+            if (year >= 1997) {
+                yearData.forEach((monthData, month) => {
+                    monthlyTempData.push({
+                        year: +year,
+                        month: +month,
+                        minTemp: d3.min(monthData, record => record.minTemp),
+                        maxTemp: d3.max(monthData, record => record.maxTemp)
+                    });
+                });
+            }
         });
-
+        
+        // Render the visualization component when click on button to change from maximum to minimum heatmap
         ReactDOM.render(
-            React.createElement(MatrixView, { data: processedData }),
+            React.createElement(TemperatureViz, { temperatureData: monthlyTempData }),
             document.getElementById("root")
         );
+    }).catch(error => {
+        console.error("Error loading or processing temperature data:", error);
+        document.getElementById("root").innerHTML = `
+            <div style="color: red; padding: 20px;">
+                <h3>Data Loading Error</h3>
+                <p>Failed to load temperature data. .</p>
+            </div>
+        `;
     });
 };
 
-loadData();
+processTemperatureData();
