@@ -1,7 +1,7 @@
 const { useEffect, useState } = React;
 
 const TemperatureViz = ({ temperatureData }) => {
-   //Default start  is setting the display to Maximum heatmap
+   //Default state  is setting the display to Maximum heatmap
     const [displayMaxTemp, setDisplayMaxTemp] = useState(true);
     const dimensions = {
         chartWidth: 1000,
