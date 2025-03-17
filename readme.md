@@ -1,6 +1,6 @@
-#CSCE-679 Data Visualization - Assignment 2
+# CSCE-679 Data Visualization - Assignment 2
 
-##Overview
+## Overview
 
 This project provides a D3.js-powered temperature heatmap visualization using React. The heatmap represents monthly temperature variations over multiple years with interactive elements such as hover tooltips and embedded mini line charts for daily temperature variations.
 Setup Instructions
