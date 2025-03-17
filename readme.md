@@ -8,11 +8,9 @@ Setup Instructions
 Follow these steps to set up and run the project:
 1. Clone the Repository
 
-git clone <repository-url>
+git clone 
 
 2. Navigate to the Project Directory
-
-cd <project-directory>
 
 3. Install Dependencies
 
